@@ -13,3 +13,5 @@
 ## See also
  
 ![luminance-chart](images/luminance_chart_wiki.png "Luminance chart, from https://en.wikipedia.org/wiki/Lux")
+ - https://en.wikipedia.org/wiki/Lux
+ - https://link.springer.com/article/10.1007/s11818-019-00215-x
