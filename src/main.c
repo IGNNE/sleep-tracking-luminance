@@ -53,7 +53,7 @@ int main(void) {
 		float luminance = FmultiMap(sensor_voltage, VoutArray, LuxArray, 9);
 
 		char buffer[10];
-		snprintf(buffer, sizeof(buffer), "%.3f", luminance);
+		snprintf(buffer, sizeof(buffer), "%.1f lux", luminance);
 		lcd_clear_display();
 		lcd_print_string(buffer);
 		delay_ms(500);

@@ -7,3 +7,9 @@
 - [ ] Log values
 - [ ] Do something with the values
  
+ 
+--
+
+## See also
+ 
+![luminance-chart](images/luminance_chart_wiki.png "Luminance chart, from https://en.wikipedia.org/wiki/Lux")
