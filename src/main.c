@@ -15,7 +15,6 @@ float VoutArray[] = { 0.0011498, 0.0033908, 0.011498, 0.041803, 0.15199,
 float LuxArray[] = { 1.0108, 3.1201, 9.8051, 27.43, 69.545, 232.67, 645.11,
 		73.52, 1000 };
 
-
 /**
  * Slightly modified from https://wiki.seeedstudio.com/Grove-Luminance_Sensor/
  *
@@ -94,19 +93,20 @@ void flash_init() {
  * @param lum Wert, der gespeichert werden soll
  */
 void flash_save_value(float lum) {
-	if (*data_array_pos_ptr >= DATA_ARRAY_SIZE) {
-		*data_array_pos_ptr = 0;
-		*buffer_overflow_ptr = true;
+	if ((*data_array_pos_ptr) >= DATA_ARRAY_SIZE) {
+		(*data_array_pos_ptr) = 0;
+		(*buffer_overflow_ptr) = true;
 	}
-	data_base_ptr[(*data_array_pos_ptr)++] = lum;
+	data_base_ptr[(*data_array_pos_ptr)] = lum;
+	(*data_array_pos_ptr)++;
 }
 
 /**
  * Verwirft alle Werte im Flash
  */
 void flash_reset() {
-	*data_array_pos_ptr = 0;
-	*buffer_overflow_ptr = false;
+	(*data_array_pos_ptr) = 0;
+	(*buffer_overflow_ptr) = false;
 }
 
 /**
@@ -121,10 +121,12 @@ void flash_reset() {
 size_t flash_get_values(float * val_array) {
 	if (!*buffer_overflow_ptr) {
 		// no overflow, just copy the values
-		memcpy(val_array, data_base_ptr, *data_array_pos_ptr);
+		size_t values_in_bytes =  (*data_array_pos_ptr) * sizeof(float);
+		memcpy(val_array, data_base_ptr, values_in_bytes);
 		return *data_array_pos_ptr;
 	} else {
 		// overflow happened, we need to get a bit more creative to get all values
+		// TODO auch kaputt fixme
 		size_t values_before_overflow = DATA_ARRAY_SIZE - (*data_array_pos_ptr);
 		size_t values_after_overflow = (*data_array_pos_ptr);
 		memcpy(val_array + (*data_array_pos_ptr), data_base_ptr,
@@ -135,42 +137,41 @@ size_t flash_get_values(float * val_array) {
 	}
 }
 
-
-void setup_buttons(void){
+void setup_buttons(void) {
 	//Setup Button PB3/PB5 -> D3/D4
-	RCC->IOPENR |= RCC_IOPENR_GPIOBEN; 		// Set of RCC Clock IO port enable register bits for clock for GPIO B
-	GPIOB->MODER &= ~GPIO_MODER_MODE3; 	// Clear of GPIO port mode register bits --> input mode is set
-	GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD3; 	// Clear of GPIO port pull-up/pull-down register bits --> No pull-up pull-down mode
-    GPIOB->MODER &= ~GPIO_MODER_MODE5;
-    GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD5;
+	RCC->IOPENR |= RCC_IOPENR_GPIOBEN; // Set of RCC Clock IO port enable register bits for clock for GPIO B
+	GPIOB->MODER &= ~GPIO_MODER_MODE3; // Clear of GPIO port mode register bits --> input mode is set
+	GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD3; // Clear of GPIO port pull-up/pull-down register bits --> No pull-up pull-down mode
+	GPIOB->MODER &= ~GPIO_MODER_MODE5;
+	GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD5;
 }
 
 /*void EXTI4_15_IRQHandler(void) {
-	if ((EXTI->PR & EXTI_PR_PIF13_Msk) != 0){		//If selected trigger request occured in Pin5
-		       EXTI->PR |= EXTI_PR_PIF13;			//Reset Bit to look if trigger occured by writing 1
-		       stop_reading = 1;					//Stop reading
-		   }
-	if ((EXTI->PR & EXTI_PR_PIF5_Msk) != 0){		//If selected trigger request occured in Pin5
-			       EXTI->PR |= EXTI_PR_PIF5;			//Reset Bit to look if trigger occured by writing 1
-			       stop_reading = 1;					//Stop reading
-			   }
-}*/
+ if ((EXTI->PR & EXTI_PR_PIF13_Msk) != 0){		//If selected trigger request occured in Pin5
+ EXTI->PR |= EXTI_PR_PIF13;			//Reset Bit to look if trigger occured by writing 1
+ stop_reading = 1;					//Stop reading
+ }
+ if ((EXTI->PR & EXTI_PR_PIF5_Msk) != 0){		//If selected trigger request occured in Pin5
+ EXTI->PR |= EXTI_PR_PIF5;			//Reset Bit to look if trigger occured by writing 1
+ stop_reading = 1;					//Stop reading
+ }
+ }*/
 
-void send_data(uint32_t values_counter, float * val_array){
-	for(uint32_t i=0;i<values_counter ;i++){
+void send_data(uint32_t values_counter, float * val_array) {
+	for (uint32_t i = 0; i < values_counter; i++) {
 		char lux_buffer[(sizeof(float) * 8 + 1)];
 		int z = 1;
 		sprintf(lux_buffer, "%f ", val_array[i]);
-		if(z==1){
+		if (z == 1) {
 			lcd_print_string(lux_buffer);
-			z+=1;
+			z += 1;
 		}
 		// Print Lux to USART
 		for (int j = 0; lux_buffer[j] != '\0'; j++) {
-		   while (!(USART2->ISR & USART_ISR_TXE))
-		            ; // wait until the TDR register has been read
-		   USART2->TDR = lux_buffer[j] & USART_TDR_TDR_Msk;
-		 }
+			while (!(USART2->ISR & USART_ISR_TXE))
+				; // wait until the TDR register has been read
+			USART2->TDR = lux_buffer[j] & USART_TDR_TDR_Msk;
+		}
 	}
 }
 
@@ -180,6 +181,8 @@ int main(void) {
 	i2c_setup();
 	lcd_init();
 	flash_init();
+	// TODO HACK
+	flash_reset();
 	usart_setup();
 	lcd_print_string("    Embedded    "
 			"    Systems!    ");
@@ -194,31 +197,32 @@ int main(void) {
 	int keep_reading = 1;
 	int read_values = 0;	// read values since last sending
 	int send_values = 0;	// sum of send values
-	while(button_pressed != 1){
-	if (GPIOB->IDR & GPIO_IDR_ID3) { 	// Value of IDR_ID3 (Pin 3) -> high/True, low/False
-		}else{
+	while (button_pressed != 1) {
+		if (GPIOB->IDR & GPIO_IDR_ID3) { // Value of IDR_ID3 (Pin 3) -> high/True, low/False
+		} else {
 			button_pressed = 1;			// Activate reading
 		}
 	}
-/*
-	int * data_ptr = (int *) (DATA_EEPROM_BASE);
+	/*
+	 int * data_ptr = (int *) (DATA_EEPROM_BASE);
 
-	// create random number
-	srand(read_adc_raw_blocking(ADC_CHANNEL_0));
-	int current = rand();
-	int last = *data_ptr;
-	*data_ptr = current;
-	char buffer[10];
+	 // create random number
+	 srand(read_adc_raw_blocking(ADC_CHANNEL_0));
+	 int current = rand();
+	 int last = *data_ptr;
+	 *data_ptr = current;
+	 char buffer[10];
 
-	lcd_print_string("current: ");
-	snprintf(buffer, sizeof(buffer), "%x", current);
-	lcd_print_string(buffer);
-	lcd_set_cursor(1, 0);
+	 lcd_print_string("current: ");
+	 snprintf(buffer, sizeof(buffer), "%x", current);
+	 lcd_print_string(buffer);
+	 lcd_set_cursor(1, 0);
 
-	lcd_print_string("last: ");
-	snprintf(buffer, sizeof(buffer), "%x", last);
-	lcd_print_string(buffer);
-*/
+	 lcd_print_string("last: ");
+	 snprintf(buffer, sizeof(buffer), "%x", last);
+	 lcd_print_string(buffer);
+	 */
+
 	while (keep_reading != 0) {
 
 		float sensor_voltage = (float) (read_vdda()
@@ -231,23 +235,22 @@ int main(void) {
 		lcd_clear_display();
 		lcd_print_string(buffer);
 		// Send values all 30 sek
-		if (read_values==6){
+		if (read_values == 6) {
 			flash_save_value(luminance);
 			read_values = 0;
-			send_values +=1;
+			send_values += 1;
 		}
 
 		delay_ms(500);
 		read_values += 1;
-		if (GPIOB->IDR & GPIO_IDR_ID5) { 	// Value of IDR_ID3 (Pin 3) -> high/True, low/False
-			}else{
-				keep_reading = 0;			// Stop reading
-			}
+		if (!(GPIOB->IDR & GPIO_IDR_ID5)) { // Value of IDR_ID3 (Pin 3) -> high/True, low/False
+			keep_reading = 0;			// Stop reading
 		}
+	}
 	lcd_clear_display();
 	lcd_print_string("   STOP     "
-				"    Systems!    ");
+			"    Systems!    ");
 	float all_values[DATA_ARRAY_SIZE];
-	uint32_t values_counter = flash_get_values(all_values);
+	size_t values_counter = flash_get_values(all_values);
 	send_data(values_counter, all_values);
-	}
+}
