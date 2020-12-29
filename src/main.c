@@ -43,7 +43,7 @@ float FmultiMap(float val, float * _in, float * _out, uint8_t size) {
 			/ (_in[pos] - _in[pos - 1]) + _out[pos - 1];
 }
 
-#define DATA_ARRAY_SIZE 3000
+#define DATA_ARRAY_SIZE 500
 float * data_base_ptr = (float *) (DATA_EEPROM_BASE);
 size_t * data_array_pos_ptr = (size_t *) (DATA_EEPROM_BASE
 		+ (DATA_ARRAY_SIZE * sizeof(float)));
@@ -132,7 +132,7 @@ void setup_buttons(void){
 void send_data(uint32_t values_counter, float * val_array){
 	for(uint32_t i=0;i<values_counter ;i++){
 		char temp_buffer[(sizeof(float) * 8 + 1)];
-		itoa(val_array[i],temp_buffer, 10);
+		itoa(val_array[i], temp_buffer, 10);
 		// Print Lux to USART
 		for (int j = 0; temp_buffer[j] != '\0'; j++) {
 		   while (!(USART2->ISR & USART_ISR_TXE))
@@ -162,7 +162,8 @@ int main(void) {
 	setup_buttons();
 	int button_pressed = 0;
 	int keep_reading = 1;
-
+	int read_values = 0;	// read values since last sending
+	int send_values = 0;	// sum of send values
 	while(button_pressed != 1){
 	if (GPIOB->IDR & GPIO_IDR_ID3) { 	// Value of IDR_ID3 (Pin 3) -> high/True, low/False
 		}else{
@@ -189,8 +190,7 @@ int main(void) {
 	lcd_print_string(buffer);
 */
 	while (keep_reading != 0) {
-		int read_values = 0;	// read values since last sending
-		int send_values = 0;	// sum of send values
+
 		float sensor_voltage = (float) (read_vdda()
 				* read_adc_raw_blocking(ADC_CHANNEL_0)) / (4095 * 1000);
 
@@ -215,7 +215,7 @@ int main(void) {
 			}
 		}
 	lcd_clear_display();
-	lcd_print_string("    STOP    "
+	lcd_print_string("   STOP     "
 				"    Systems!    ");
 	float all_values[DATA_ARRAY_SIZE];
 	uint32_t values_counter = flash_get_values(all_values);
