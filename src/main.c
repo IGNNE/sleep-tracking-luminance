@@ -129,12 +129,20 @@ void setup_buttons(void){
 			   }
 }*/
 
-void send_data(){
-	char temp_buffer[(sizeof(uint16_t) * 8 + 1)];
-	//itoa(temp,temp_buffer, 10);
-	//sprintf(temp_buffer, "%.1f \xDF""C", temp);
-	lcd_clear_display();
-	lcd_print_string(temp_buffer);
+void send_data(uint32_t values_counter, float * val_array){
+	for(uint32_t i=0;i<values_counter ;i++){
+		char temp_buffer[(sizeof(float) * 8 + 1)];
+		itoa(val_array[i],temp_buffer, 10);
+		// Print Lux to USART
+		for (int j = 0; temp_buffer[j] != '\0'; j++) {
+		   while (!(USART2->ISR & USART_ISR_TXE))
+		            ; // wait until the TDR register has been read
+		   USART2->TDR = temp_buffer[j] & USART_TDR_TDR_Msk;
+		 }
+		while (!(USART2->ISR & USART_ISR_TXE));
+		USART2->TDR = '\n';
+		while (!(USART2->ISR & USART_ISR_TXE));
+	}
 }
 
 int main(void) {
@@ -194,7 +202,7 @@ int main(void) {
 		lcd_print_string(buffer);
 		// Send values all 30 sek
 		if (read_values==6){
-			// flash_save_value(luminance);
+			flash_save_value(luminance);
 			read_values = 0;
 			send_values +=1;
 		}
@@ -209,4 +217,7 @@ int main(void) {
 	lcd_clear_display();
 	lcd_print_string("    STOP    "
 				"    Systems!    ");
+	float all_values[DATA_ARRAY_SIZE];
+	uint32_t values_counter = flash_get_values(all_values);
+	send_data(values_counter, all_values);
 	}
