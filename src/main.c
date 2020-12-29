@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stm32l073xx.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 
 float VoutArray[] = { 0.0011498, 0.0033908, 0.011498, 0.041803, 0.15199,
 		0.53367, 1.3689, 1.9068, 2.3 };
@@ -41,8 +43,7 @@ float FmultiMap(float val, float * _in, float * _out, uint8_t size) {
 }
 
 #define DATA_ARRAY_SIZE 3000
-const float * data_base_ptr = (float *) (DATA_EEPROM_BASE);
-float data_array[DATA_ARRAY_SIZE] = data_base_ptr;
+float * data_base_ptr = (float *) (DATA_EEPROM_BASE);
 size_t * data_array_pos_ptr = (size_t *) (DATA_EEPROM_BASE
 		+ (DATA_ARRAY_SIZE * sizeof(float)));
 bool * buffer_overflow_ptr = (bool *) (DATA_EEPROM_BASE + DATA_ARRAY_SIZE
@@ -69,7 +70,7 @@ void flash_save_value(float lum) {
 		*data_array_pos_ptr = 0;
 		*buffer_overflow_ptr = true;
 	}
-	data_array[(*data_array_pos_ptr)++] = lum;
+	data_base_ptr[(*data_array_pos_ptr)++] = lum;
 }
 
 /**
@@ -92,15 +93,15 @@ void flash_reset() {
 size_t flash_get_values(float * val_array) {
 	if (!*buffer_overflow_ptr) {
 		// no overflow, just copy the values
-		memcpy(val_array, data_array, *data_array_pos_ptr);
+		memcpy(val_array, data_base_ptr, *data_array_pos_ptr);
 		return *data_array_pos_ptr;
 	} else {
 		// overflow happened, we need to get a bit more creative to get all values
 		size_t values_before_overflow = DATA_ARRAY_SIZE - (*data_array_pos_ptr);
 		size_t values_after_overflow = (*data_array_pos_ptr);
-		memcpy(val_array + (*data_array_pos_ptr), data_array,
+		memcpy(val_array + (*data_array_pos_ptr), data_base_ptr,
 				values_before_overflow);
-		memcpy(val_array, data_array + values_before_overflow,
+		memcpy(val_array, data_base_ptr + values_before_overflow,
 				values_after_overflow);
 		return DATA_ARRAY_SIZE;
 	}
