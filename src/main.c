@@ -85,7 +85,7 @@ void flash_reset() {
 /**
  * Gibt alle Werte als ein zusammenhängendes Array zurück
  *
- * @param[in,out] val_array Array mit min. ::DATA_ARRAY_SIZE Einträgen zeigen
+ * @param[in,out] val_array Array mit min. ::DATA_ARRAY_SIZE Einträgen
  *
  * @return Die tatsächlich geschriebenen Array-Einträge
  *
