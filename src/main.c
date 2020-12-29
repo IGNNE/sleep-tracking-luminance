@@ -117,6 +117,7 @@ void flash_reset() {
  * @return Die tatsächlich geschriebenen Array-Einträge
  *
  * @todo pls test!!1!
+ * @todo overflow nicht getestet
  */
 size_t flash_get_values(float * val_array) {
 	if (!*buffer_overflow_ptr) {
@@ -126,13 +127,12 @@ size_t flash_get_values(float * val_array) {
 		return *data_array_pos_ptr;
 	} else {
 		// overflow happened, we need to get a bit more creative to get all values
-		// TODO auch kaputt fixme
-		size_t values_before_overflow = DATA_ARRAY_SIZE - (*data_array_pos_ptr);
-		size_t values_after_overflow = (*data_array_pos_ptr);
-		memcpy(val_array + (*data_array_pos_ptr), data_base_ptr,
-				values_before_overflow);
-		memcpy(val_array, data_base_ptr + values_before_overflow,
-				values_after_overflow);
+		size_t values_before_overflow_in_bytes = (DATA_ARRAY_SIZE - (*data_array_pos_ptr)) * sizeof(float);
+		size_t values_after_overflow_in_bytes = (*data_array_pos_ptr) * sizeof(float);
+		memcpy(val_array + values_after_overflow_in_bytes, data_base_ptr,
+				values_before_overflow_in_bytes);
+		memcpy(val_array, data_base_ptr + values_before_overflow_in_bytes,
+				values_after_overflow_in_bytes);
 		return DATA_ARRAY_SIZE;
 	}
 }
