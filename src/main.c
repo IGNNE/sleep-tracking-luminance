@@ -33,6 +33,16 @@ float FmultiMap(float val, float * _in, float * _out, uint8_t size)
     return (val - _in[pos-1]) * (_out[pos] - _out[pos-1]) / (_in[pos] - _in[pos-1]) + _out[pos-1];
 }
 
+
+void setup_buttons(void){
+	//Setup Button PB3/PB5 -> D3/D4
+	RCC->IOPENR |= RCC_IOPENR_GPIOBEN; 		// Set of RCC Clock IO port enable register bits for clock for GPIO B
+	GPIOB->MODER &= ~GPIO_MODER_MODE3; 	// Clear of GPIO port mode register bits --> input mode is set
+	GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD3; 	// Clear of GPIO port pull-up/pull-down register bits --> No pull-up pull-down mode
+	GPIOB->MODER &= ~GPIO_MODER_MODE5;
+	GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD5;
+}
+
 int main(void) {
 	clock_setup_16MHz();
 	systick_setup();
@@ -46,6 +56,15 @@ int main(void) {
 	GPIOA->MODER &=~(GPIO_MODER_MODE0);
 
 	adc_init();
+	setup_buttons();
+	int button_pressed = 0;
+
+	while(button_pressed != 1){
+	if (GPIOB->IDR & GPIO_IDR_ID3) { 	// Value of IDR_ID3 (Pin 3) -> high/True, low/False
+		}else{
+			button_pressed = 1;			// Activate reading
+		}
+	}
 
 	while (1) {
 		float sensor_voltage = (float)(read_vdda() * read_adc_raw_blocking(ADC_CHANNEL_0)) / (4095 * 1000);
