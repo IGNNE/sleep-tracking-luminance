@@ -130,7 +130,11 @@ void setup_buttons(void){
 }*/
 
 void send_data(){
-	//todo
+	char temp_buffer[(sizeof(uint16_t) * 8 + 1)];
+	//itoa(temp,temp_buffer, 10);
+	//sprintf(temp_buffer, "%.1f \xDF""C", temp);
+	lcd_clear_display();
+	lcd_print_string(temp_buffer);
 }
 
 int main(void) {
@@ -177,6 +181,8 @@ int main(void) {
 	lcd_print_string(buffer);
 */
 	while (keep_reading != 0) {
+		int read_values = 0;	// read values since last sending
+		int send_values = 0;	// sum of send values
 		float sensor_voltage = (float) (read_vdda()
 				* read_adc_raw_blocking(ADC_CHANNEL_0)) / (4095 * 1000);
 
@@ -186,8 +192,15 @@ int main(void) {
 		snprintf(buffer, sizeof(buffer), "%.1f lux", luminance);
 		lcd_clear_display();
 		lcd_print_string(buffer);
-		//flash_save_value(luminance);
+		// Send values all 30 sek
+		if (read_values==6){
+			// flash_save_value(luminance);
+			read_values = 0;
+			send_values +=1;
+		}
+
 		delay_ms(500);
+		read_values += 1;
 		if (GPIOB->IDR & GPIO_IDR_ID5) { 	// Value of IDR_ID3 (Pin 3) -> high/True, low/False
 			}else{
 				keep_reading = 0;			// Stop reading
