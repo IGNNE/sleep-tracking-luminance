@@ -43,6 +43,33 @@ float FmultiMap(float val, float * _in, float * _out, uint8_t size) {
 			/ (_in[pos] - _in[pos - 1]) + _out[pos - 1];
 }
 
+static void usart_setup(void) {
+	// Enable peripheral clock for port A
+	RCC->IOPENR |= RCC_IOPENR_IOPAEN;
+
+	// Set alternate functions for PA2 and PA3 to AF4 (USART2)
+	GPIOA->AFR[0] = (GPIOA->AFR[0]
+			& ~(GPIO_AFRL_AFSEL2_Msk | GPIO_AFRL_AFSEL3_Msk))
+			| ((4 << GPIO_AFRL_AFSEL2_Pos) & GPIO_AFRL_AFSEL2_Msk)
+			| ((4 << GPIO_AFRL_AFSEL3_Pos) & GPIO_AFRL_AFSEL3_Msk);
+
+	// Set GPIO mode for PA2 and PA3 to alternate function (mode 2)
+	GPIOA->MODER = (GPIOA->MODER
+			& ~(GPIO_MODER_MODE2_Msk | GPIO_MODER_MODE3_Msk))
+			| ((2 << GPIO_MODER_MODE2_Pos) & GPIO_MODER_MODE2_Msk)
+			| ((2 << GPIO_MODER_MODE3_Pos) & GPIO_MODER_MODE3_Msk);
+
+	RCC->APB1ENR |= RCC_APB1ENR_USART2EN; // enable peripheral clock for USART2
+
+	// Set Baudrate to 115200
+	USART2->BRR = 16000000 / 115200;
+	// Enable USART2 receiver, transmitter, RX interrupt and USART
+	USART2->CR1 |= (USART_CR1_RE | USART_CR1_TE | USART_CR1_RXNEIE
+			| USART_CR1_UE);
+
+	NVIC_EnableIRQ(USART2_IRQn);
+}
+
 #define DATA_ARRAY_SIZE 500
 float * data_base_ptr = (float *) (DATA_EEPROM_BASE);
 size_t * data_array_pos_ptr = (size_t *) (DATA_EEPROM_BASE
@@ -131,17 +158,19 @@ void setup_buttons(void){
 
 void send_data(uint32_t values_counter, float * val_array){
 	for(uint32_t i=0;i<values_counter ;i++){
-		char temp_buffer[(sizeof(float) * 8 + 1)];
-		itoa(val_array[i], temp_buffer, 10);
+		char lux_buffer[(sizeof(float) * 8 + 1)];
+		int z = 1;
+		sprintf(lux_buffer, "%f ", val_array[i]);
+		if(z==1){
+			lcd_print_string(lux_buffer);
+			z+=1;
+		}
 		// Print Lux to USART
-		for (int j = 0; temp_buffer[j] != '\0'; j++) {
+		for (int j = 0; lux_buffer[j] != '\0'; j++) {
 		   while (!(USART2->ISR & USART_ISR_TXE))
 		            ; // wait until the TDR register has been read
-		   USART2->TDR = temp_buffer[j] & USART_TDR_TDR_Msk;
+		   USART2->TDR = lux_buffer[j] & USART_TDR_TDR_Msk;
 		 }
-		while (!(USART2->ISR & USART_ISR_TXE));
-		USART2->TDR = '\n';
-		while (!(USART2->ISR & USART_ISR_TXE));
 	}
 }
 
@@ -151,6 +180,7 @@ int main(void) {
 	i2c_setup();
 	lcd_init();
 	flash_init();
+	usart_setup();
 	lcd_print_string("    Embedded    "
 			"    Systems!    ");
 
