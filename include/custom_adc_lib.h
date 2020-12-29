@@ -3,61 +3,72 @@
 #include <delay.h>
 
 /**
- * @file Small library to handle the ADC
+ * @file custom_adc_lib.h Kleine Library, um den STM32-ADC anzusprechen
  * @author Malte Klas
  */
 
 /**
- * Callback type for the EOC interrupt
+ * Callback-Typ für den End-of-Calibration (EOC) interrupt
  */
 typedef void (*eoc_callback_t)(uint16_t);
 
 /**
- * Enable an interrupt on EOC
+ * Aktiviert den Interrupt für EOC
  *
- * @note  this will call the function set in set_EOC_callback()
+ * @note Der Interrupt wird den Callback aus ::set_EOC_callback aufrufen
  */
 void enable_EOC_interrupt();
 
 /**
- * Enable automatic measurement with TIM6
+ * Aktiviert die automatische Messung mit Timer und Interrupt
  *
- * @param time_ms time between two measurements
+ * @note Der Prescaler für den Timer wird auf 8000 gesetzt, damit er mit einem Takt von 16 MHz mit einem Intervall von 1 ms zählt.
+ *       Dadurch kann der gewünschte Zeitwert einfach in das Reload-Register geladen werden.
+ *       Entsprechende Formel im im Datasheet: f / (PSC+1)
+ *
+ * @todo Warum 8000? Es müsste eigentlich 16000 (bzw 15999...) sein!
+ *
+ * @param time_ms Zeit zwischen zwei Messungen
  */
 void enable_EOC_interrupt_timer(uint16_t time_ms);
 
 /**
- * Clears all interrupt and timer settings
+ * Deaktivert Interrupts und setzt die entspr. Einstellungen zurück
  */
 void disable_adc_interrupts();
 
 /**
- * Read a single value from the ADC in discontinuous, blocking mode
+ * Liest einen ADC-Wert aus und blockiert, bis das Ergebnis vorliegt
  */
 uint16_t read_adc_raw_blocking(uint32_t channel);
 
 /**
- * Start a measurement, but do not wait for it to complete
- * @note to be used with interrupts (but without enable_eoc_interrupt_timer)
+ * Startet eine Messung, aber wartet nicht auf das Ergebnis
+ *
+ * @note Diese Funktion ist nur bei Verwendung der Interrupts sinnvoll (::enable_EOC_interrupt bzw. ::enable_EOC_interrupt_timer)
  *
  */
 void read_adc_interrupt(uint32_t channel);
 
 /**
- * Measure VREFINT (blocking) and calculate VDDA/AVDD/VDD_APPLI
+ * Misst VREFINT (blockierend) und berechnet VDDA (auch AVDD/VDD_APPLI im Datasheet)
  *
- * @note this function disables the interrupts while it is running, which means that you can safely use it together with interrupts in most cases
+ * @note Diese Funktion deaktiviert den ADC-Interrupt für die Dauer der Messung
  *
- * @return the ADC reference voltage in mV
+ * @note Der Timer (TIM6) läuft ggf. weiter, während diese Funktion läuft. Es sollte darauf geachtet werden, dass es nicht zu Konflikten kommt!
+ *
+ * @return ADC-Referenzspannung VDDA in mV
  */
 uint16_t read_vdda();
 
 /**
- * Initialise the ADC, default settings are for discontinuous mode
+ * Initialisiert den ADC, einschließlich Kalibirerung und 16x Oversampling/Mittelwertbildung
  */
 void adc_init();
 
 /**
- * Register a callback to react on an End-Of-Conversion interrupt
+ * Registriert den Callback für den EOC-Interrupt
+ *
+ * @param[in] callback Funktionszeiger, der beim Interrupt aufgerufen wird
  */
 void set_EOC_callback(eoc_callback_t callback);
