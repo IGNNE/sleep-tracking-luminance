@@ -43,7 +43,7 @@ float FmultiMap(float val, float * _in, float * _out, uint8_t size) {
 			/ (_in[pos] - _in[pos - 1]) + _out[pos - 1];
 }
 
-#define DATA_ARRAY_SIZE 3000
+#define DATA_ARRAY_SIZE 1000
 float * data_base_ptr = (float *) (DATA_EEPROM_BASE);
 size_t * data_array_pos_ptr = (size_t *) (DATA_EEPROM_BASE
 		+ (DATA_ARRAY_SIZE * sizeof(float)));
@@ -67,7 +67,7 @@ void flash_init() {
  * @param lum Wert, der gespeichert werden soll
  */
 void flash_save_value(float lum) {
-	if (*data_array_pos_ptr >= DATA_ARRAY_SIZE) {
+	if ((*data_array_pos_ptr) >= DATA_ARRAY_SIZE) {
 		*data_array_pos_ptr = 0;
 		*buffer_overflow_ptr = true;
 	}
@@ -186,7 +186,7 @@ int main(void) {
 		snprintf(buffer, sizeof(buffer), "%.1f lux", luminance);
 		lcd_clear_display();
 		lcd_print_string(buffer);
-		//flash_save_value(luminance);
+		flash_save_value(luminance);
 		delay_ms(500);
 		if (GPIOB->IDR & GPIO_IDR_ID5) { 	// Value of IDR_ID3 (Pin 3) -> high/True, low/False
 			}else{
