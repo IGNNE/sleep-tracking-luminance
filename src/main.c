@@ -15,6 +15,7 @@ float VoutArray[] = { 0.0011498, 0.0033908, 0.011498, 0.041803, 0.15199,
 float LuxArray[] = { 1.0108, 3.1201, 9.8051, 27.43, 69.545, 232.67, 645.11,
 		73.52, 1000 };
 
+
 /**
  * Slightly modified from https://wiki.seeedstudio.com/Grove-Luminance_Sensor/
  *
@@ -113,8 +114,23 @@ void setup_buttons(void){
 	RCC->IOPENR |= RCC_IOPENR_GPIOBEN; 		// Set of RCC Clock IO port enable register bits for clock for GPIO B
 	GPIOB->MODER &= ~GPIO_MODER_MODE3; 	// Clear of GPIO port mode register bits --> input mode is set
 	GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD3; 	// Clear of GPIO port pull-up/pull-down register bits --> No pull-up pull-down mode
-	GPIOB->MODER &= ~GPIO_MODER_MODE5;
-	GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD5;
+    GPIOB->MODER &= ~GPIO_MODER_MODE5;
+    GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD5;
+}
+
+/*void EXTI4_15_IRQHandler(void) {
+	if ((EXTI->PR & EXTI_PR_PIF13_Msk) != 0){		//If selected trigger request occured in Pin5
+		       EXTI->PR |= EXTI_PR_PIF13;			//Reset Bit to look if trigger occured by writing 1
+		       stop_reading = 1;					//Stop reading
+		   }
+	if ((EXTI->PR & EXTI_PR_PIF5_Msk) != 0){		//If selected trigger request occured in Pin5
+			       EXTI->PR |= EXTI_PR_PIF5;			//Reset Bit to look if trigger occured by writing 1
+			       stop_reading = 1;					//Stop reading
+			   }
+}*/
+
+void send_data(){
+	//todo
 }
 
 int main(void) {
@@ -122,6 +138,7 @@ int main(void) {
 	systick_setup();
 	i2c_setup();
 	lcd_init();
+	flash_init();
 	lcd_print_string("    Embedded    "
 			"    Systems!    ");
 
@@ -132,6 +149,7 @@ int main(void) {
 	adc_init();
 	setup_buttons();
 	int button_pressed = 0;
+	int keep_reading = 1;
 
 	while(button_pressed != 1){
 	if (GPIOB->IDR & GPIO_IDR_ID3) { 	// Value of IDR_ID3 (Pin 3) -> high/True, low/False
@@ -139,7 +157,7 @@ int main(void) {
 			button_pressed = 1;			// Activate reading
 		}
 	}
-
+/*
 	int * data_ptr = (int *) (DATA_EEPROM_BASE);
 
 	// create random number
@@ -157,11 +175,8 @@ int main(void) {
 	lcd_print_string("last: ");
 	snprintf(buffer, sizeof(buffer), "%x", last);
 	lcd_print_string(buffer);
-
-	while (1)
-		;
-
-	while (1) {
+*/
+	while (keep_reading != 0) {
 		float sensor_voltage = (float) (read_vdda()
 				* read_adc_raw_blocking(ADC_CHANNEL_0)) / (4095 * 1000);
 
@@ -171,6 +186,14 @@ int main(void) {
 		snprintf(buffer, sizeof(buffer), "%.1f lux", luminance);
 		lcd_clear_display();
 		lcd_print_string(buffer);
+		//flash_save_value(luminance);
 		delay_ms(500);
+		if (GPIOB->IDR & GPIO_IDR_ID5) { 	// Value of IDR_ID3 (Pin 3) -> high/True, low/False
+			}else{
+				keep_reading = 0;			// Stop reading
+			}
+		}
+	lcd_clear_display();
+	lcd_print_string("    STOP    "
+				"    Systems!    ");
 	}
-}
