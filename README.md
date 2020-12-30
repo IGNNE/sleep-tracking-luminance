@@ -1,12 +1,14 @@
 # Sleep Tracking with a Luminance Sensor
 
-## Milestones
-- [x] Verify reading a voltage from a GPIO (checked with multimeter)
+## Tasks
+- [x] Verify reading a voltage from a GPIO - checked with multimeter
 - [x] Read and display the sensor voltage and computed luminance
-- [ ] Check accuracy of values
-- [ ] Log values
-- [ ] Do something with the values
- 
+- [x] Check accuracy of values - values seem to be okay
+- [x] Log values - values are logged in NVM / data flash
+- [x] Print values on request via UART
+- [ ] Clean up code
+- [ ] Improve / fix UI
+- [ ] Test code, esp. overflow and power loss
  
 --
 
