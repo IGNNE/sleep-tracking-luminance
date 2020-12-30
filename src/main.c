@@ -252,6 +252,7 @@ int main(void) {
 		while (record_values) {
 			float sensor_voltage = (float) (read_vdda()
 					* read_adc_raw_blocking(ADC_CHANNEL_0)) / (4095 * 1000);
+
 			float luminance = FmultiMap(sensor_voltage, VoutArray, LuxArray, 9);
 
 			write_lux_to_lcd(luminance);
@@ -276,6 +277,7 @@ int main(void) {
 		// Send data over serial port after pressing green button
 		if (print_values) {
 			lcd_clear_display();
+			//lcdprint und delay vielleicht weg?
 			lcd_print_string("Sending data ...");
 			delay_ms(1000);
 			float all_values[DATA_ARRAY_SIZE];
