@@ -19,8 +19,8 @@ float LuxArray[] = { 1.0108, 3.1201, 9.8051, 27.43, 69.545, 232.67, 645.11,
 float * data_base_ptr = (float *) (DATA_EEPROM_BASE);
 size_t * data_array_pos_ptr = (size_t *) (DATA_EEPROM_BASE
 		+ (DATA_ARRAY_SIZE * sizeof(float)));
-bool * buffer_overflow_ptr = (bool *) (DATA_EEPROM_BASE + DATA_ARRAY_SIZE
-		+ sizeof(size_t));
+bool * buffer_overflow_ptr = (bool *) (DATA_EEPROM_BASE
+		+ (DATA_ARRAY_SIZE * sizeof(float)) + sizeof(size_t));
 
 const int NUM_AVERAGE_VALUES = 6;
 
@@ -77,7 +77,6 @@ static void usart_setup(void) {
 
 	NVIC_EnableIRQ(USART2_IRQn);
 }
-
 
 /**
  * Lässt Schreib-/Lesezugriff auf Flash zu
@@ -249,7 +248,6 @@ int main(void) {
 			}
 		}
 
-
 		// this saves the averaged value
 		float luminance_average = 0;
 		// Record data loop
@@ -267,7 +265,7 @@ int main(void) {
 
 			// Only send values all 30 seconds
 			if (read_values == NUM_AVERAGE_VALUES) {
-				flash_save_value(luminance_average/NUM_AVERAGE_VALUES);
+				flash_save_value(luminance_average / NUM_AVERAGE_VALUES);
 				luminance_average = 0;
 				read_values = 0;
 			}
