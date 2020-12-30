@@ -110,7 +110,7 @@ void flash_reset() {
 }
 
 /**
- * Gibt alle Werte als ein zusammenhÃ¤ngendes Array zurück
+ * Gibt alle Werte als ein zusammenhÃ¤ngendes Array zurï¿½ck
  *
  * @param[in,out] val_array Array mit min. ::DATA_ARRAY_SIZE EintrÃ¤gen
  *
@@ -152,7 +152,7 @@ void setup_buttons(void) {
 }
 
 /**
- * Gibt zurück ob der Start Button gedrückt wird
+ * Gibt zurï¿½ck ob der Start Button gedrï¿½ckt wird
  *
  * @return aktueller Wert des start Button
  *
@@ -162,7 +162,7 @@ bool startButton_pressed(void) {
 }
 
 /**
- * Gibt zurück ob der Ende Button gedrückt wird
+ * Gibt zurï¿½ck ob der Ende Button gedrï¿½ckt wird
  *
  * @return aktueller Wert des ende Button
  *
@@ -172,7 +172,7 @@ bool stopButton_pressed(void) {
 }
 
 /**
- * @brief Sendet die gespeicherten EEPROM lux-werte seriell über USART
+ * @brief Sendet die gespeicherten EEPROM lux-werte seriell ï¿½ber USART
  * @param values_counter Anzahl der gespeicherten Werte im EEPORM dieser session
  * @param val_array Array mit ::DATA_ARRAY_SIZE und den gespeicherten Lux-werten
  */
@@ -201,7 +201,7 @@ void write_lux_to_lcd(float luminance) {
 }
 
 /**
- * @brief Initialisiert alle nötigen Komponenten und führt das Hauptprogramm aus.
+ * @brief Initialisiert alle nï¿½tigen Komponenten und fï¿½hrt das Hauptprogramm aus.
  * @return nicht implementiert
  */
 int main(void) {
@@ -210,8 +210,6 @@ int main(void) {
 	i2c_setup();
 	lcd_init();
 	flash_init();
-	// TODO HACK
-	//flash_reset();
 	usart_setup();
 
 	// set up gpios
@@ -223,8 +221,9 @@ int main(void) {
 	// Infinite Loop
 	while (1) {
 		lcd_clear_display();
-		lcd_print_string("    Embedded    "
-				"    Systems!    ");
+		lcd_print_string("Gruen: Ausgabe");
+		lcd_set_cursor(1, 0);
+		lcd_print_string("Rot: Aufnahme");
 		delay_ms(500);
 		// Check which button is pressed at Startup
 		bool start_check = 0;
@@ -236,15 +235,20 @@ int main(void) {
 		// Waiting loop until recording is started
 		while (start_check != 1) {
 			if (startButton_pressed()) {
+				while (startButton_pressed())
+					; // wait until button released
 				keep_reading = 1;		// Start reading
 				start_check = 1;
 			}
 			if (stopButton_pressed()) {
+				while (stopButton_pressed())
+					; // wait until button released
 				keep_reading = 0;		// Start reading
 				greenButton_pressed = 1;
 				start_check = 1;
 			}
 		}
+
 		// Record data loop
 		while (keep_reading != 0) {
 			float sensor_voltage = (float) (read_vdda()
@@ -263,14 +267,19 @@ int main(void) {
 			delay_ms(500);
 			// Stop recording when start button is pressed again
 			if (startButton_pressed()) {
+				while (startButton_pressed())
+					; // wait until button released
 				keep_reading = 0;
 			}
 			// Stop recording and send data when stop button is pressed
 			if (stopButton_pressed()) {
+				while (stopButton_pressed())
+									; // wait until button released
 				keep_reading = 0;			// Stop reading
 				greenButton_pressed = 1;
 			}
 		}
+
 		// Send data over serial port after pressing green button
 		if (greenButton_pressed) {
 			lcd_clear_display();
