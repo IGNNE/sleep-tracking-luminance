@@ -10,7 +10,10 @@
 - [ ] Improve / fix UI
 - [ ] Test code, esp. overflow and power loss
  
---
+## Flussdiagramm
+![lichtsensor](images/lichtsensor.png "Flussdiagramm")
+
+
 
 ## See also
  
