@@ -110,7 +110,7 @@ void flash_reset() {
 }
 
 /**
- * Gibt alle Werte als ein zusammenhängendes Array zurück
+ * Gibt alle Werte als ein zusammenhängendes Array zur�ck
  *
  * @param[in,out] val_array Array mit min. ::DATA_ARRAY_SIZE Einträgen
  *
@@ -122,13 +122,15 @@ void flash_reset() {
 size_t flash_get_values(float * val_array) {
 	if (!*buffer_overflow_ptr) {
 		// no overflow, just copy the values
-		size_t values_in_bytes =  (*data_array_pos_ptr) * sizeof(float);
+		size_t values_in_bytes = (*data_array_pos_ptr) * sizeof(float);
 		memcpy(val_array, data_base_ptr, values_in_bytes);
 		return *data_array_pos_ptr;
 	} else {
 		// overflow happened, we need to get a bit more creative to get all values
-		size_t values_before_overflow_in_bytes = (DATA_ARRAY_SIZE - (*data_array_pos_ptr)) * sizeof(float);
-		size_t values_after_overflow_in_bytes = (*data_array_pos_ptr) * sizeof(float);
+		size_t values_before_overflow_in_bytes = (DATA_ARRAY_SIZE
+				- (*data_array_pos_ptr)) * sizeof(float);
+		size_t values_after_overflow_in_bytes = (*data_array_pos_ptr)
+				* sizeof(float);
 		memcpy(val_array + values_after_overflow_in_bytes, data_base_ptr,
 				values_before_overflow_in_bytes);
 		memcpy(val_array, data_base_ptr + values_before_overflow_in_bytes,
@@ -155,7 +157,7 @@ void setup_buttons(void) {
  * @return aktueller Wert des start Button
  *
  */
-bool startButton_pressed(void){
+bool startButton_pressed(void) {
 	return !(GPIOB->IDR & GPIO_IDR_ID3);
 }
 
@@ -165,7 +167,7 @@ bool startButton_pressed(void){
  * @return aktueller Wert des ende Button
  *
  */
-bool stopButton_pressed(void){
+bool stopButton_pressed(void) {
 	return !(GPIOB->IDR & GPIO_IDR_ID5);
 }
 
@@ -191,7 +193,7 @@ void send_data(uint32_t values_counter, float * val_array) {
  * @brief Schreibt den lux-wert auf das LC-Display
  * @param luminance Wert zum schreiben
  */
-void write_to_lcd(float luminance){
+void write_lux_to_lcd(float luminance) {
 	char buffer[10];
 	snprintf(buffer, sizeof(buffer), "%.1f lux", luminance);
 	lcd_clear_display();
@@ -209,10 +211,8 @@ int main(void) {
 	lcd_init();
 	flash_init();
 	// TODO HACK
-	flash_reset();
+	//flash_reset();
 	usart_setup();
-	lcd_print_string("    Embedded    "
-			"    Systems!    ");
 
 	// set up gpios
 	RCC->IOPENR |= RCC_IOPENR_GPIOAEN;
@@ -220,42 +220,67 @@ int main(void) {
 
 	adc_init();
 	setup_buttons();
-	bool button_pressed = 0;
-	bool keep_reading = 1;
-	int read_values = 0;	// read values since last sending
-	int send_values = 0;	// sum of send values
-	// Wait until recording is started
-	while (button_pressed != 1) {
-		if (startButton_pressed()) {
-			button_pressed = 1;		// Start reading
-		}
-	}
-	while (keep_reading != 0) {
-
-		float sensor_voltage = (float) (read_vdda()
-				* read_adc_raw_blocking(ADC_CHANNEL_0)) / (4095 * 1000);
-
-		float luminance = FmultiMap(sensor_voltage, VoutArray, LuxArray, 9);
-
-		write_to_lcd(luminance);
-		// Only send values all 30 seconds
-		if (read_values == 6) {
-			flash_save_value(luminance);
-			read_values = 0;
-			send_values += 1;
-		}
-		read_values += 1;
+	// Infinite Loop
+	while (1) {
+		lcd_clear_display();
+		lcd_print_string("    Embedded    "
+				"    Systems!    ");
 		delay_ms(500);
+		// Check which button is pressed at Startup
+		bool start_check = 0;
+		bool greenButton_pressed = 0;
+		bool keep_reading = 1;
+		int read_values = 0;	// read values since last sending
+		int send_values = 0;	// sum of send values
 
-		// Record until Stop button is pressed
-		if (stopButton_pressed()) {
-			keep_reading = 0;			// Stop reading
+		// Waiting loop until recording is started
+		while (start_check != 1) {
+			if (startButton_pressed()) {
+				keep_reading = 1;		// Start reading
+				start_check = 1;
+			}
+			if (stopButton_pressed()) {
+				keep_reading = 0;		// Start reading
+				greenButton_pressed = 1;
+				start_check = 1;
+			}
+		}
+		// Record data loop
+		while (keep_reading != 0) {
+			float sensor_voltage = (float) (read_vdda()
+					* read_adc_raw_blocking(ADC_CHANNEL_0)) / (4095 * 1000);
+
+			float luminance = FmultiMap(sensor_voltage, VoutArray, LuxArray, 9);
+
+			write_lux_to_lcd(luminance);
+			// Only send values all 30 seconds
+			if (read_values == 6) {
+				flash_save_value(luminance);
+				read_values = 0;
+				send_values += 1;
+			}
+			read_values += 1;
+			delay_ms(500);
+			// Stop recording when start button is pressed again
+			if (startButton_pressed()) {
+				keep_reading = 0;
+			}
+			// Stop recording and send data when stop button is pressed
+			if (stopButton_pressed()) {
+				keep_reading = 0;			// Stop reading
+				greenButton_pressed = 1;
+			}
+		}
+		// Send data over serial port after pressing green button
+		if (greenButton_pressed) {
+			lcd_clear_display();
+			lcd_print_string("Sending data ...");
+			delay_ms(1000);
+			float all_values[DATA_ARRAY_SIZE];
+			size_t values_counter = flash_get_values(all_values);
+			send_data(values_counter, all_values);
+			// Reset Flash after sending data
+			flash_reset();
 		}
 	}
-	lcd_clear_display();
-	lcd_print_string("   STOP     "
-			"    Systems!    ");
-	float all_values[DATA_ARRAY_SIZE];
-	size_t values_counter = flash_get_values(all_values);
-	send_data(values_counter, all_values);
 }
