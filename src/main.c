@@ -218,6 +218,7 @@ int main(void) {
 
 	adc_init();
 	setup_buttons();
+
 	// Infinite Loop
 	while (1) {
 		lcd_clear_display();
@@ -225,38 +226,36 @@ int main(void) {
 		lcd_set_cursor(1, 0);
 		lcd_print_string("Rot: Aufnahme");
 		delay_ms(500);
+
 		// Check which button is pressed at Startup
-		bool start_check = 0;
-		bool greenButton_pressed = 0;
-		bool keep_reading = 1;
+		bool record_values = false;
+		bool print_values = false;
+
 		int read_values = 0;	// read values since last sending
 		int send_values = 0;	// sum of send values
 
 		// Waiting loop until recording is started
-		while (start_check != 1) {
+		while (!record_values && !print_values) {
 			if (startButton_pressed()) {
 				while (startButton_pressed())
 					; // wait until button released
-				keep_reading = 1;		// Start reading
-				start_check = 1;
+				record_values = true;
 			}
 			if (stopButton_pressed()) {
 				while (stopButton_pressed())
 					; // wait until button released
-				keep_reading = 0;		// Start reading
-				greenButton_pressed = 1;
-				start_check = 1;
+				print_values = true;
 			}
 		}
 
 		// Record data loop
-		while (keep_reading != 0) {
+		while (record_values) {
 			float sensor_voltage = (float) (read_vdda()
 					* read_adc_raw_blocking(ADC_CHANNEL_0)) / (4095 * 1000);
-
 			float luminance = FmultiMap(sensor_voltage, VoutArray, LuxArray, 9);
 
 			write_lux_to_lcd(luminance);
+
 			// Only send values all 30 seconds
 			if (read_values == 6) {
 				flash_save_value(luminance);
@@ -265,23 +264,17 @@ int main(void) {
 			}
 			read_values += 1;
 			delay_ms(500);
+
 			// Stop recording when start button is pressed again
 			if (startButton_pressed()) {
 				while (startButton_pressed())
 					; // wait until button released
-				keep_reading = 0;
-			}
-			// Stop recording and send data when stop button is pressed
-			if (stopButton_pressed()) {
-				while (stopButton_pressed())
-									; // wait until button released
-				keep_reading = 0;			// Stop reading
-				greenButton_pressed = 1;
+				record_values = false;
 			}
 		}
 
 		// Send data over serial port after pressing green button
-		if (greenButton_pressed) {
+		if (print_values) {
 			lcd_clear_display();
 			lcd_print_string("Sending data ...");
 			delay_ms(1000);
@@ -290,6 +283,8 @@ int main(void) {
 			send_data(values_counter, all_values);
 			// Reset Flash after sending data
 			flash_reset();
+			// done printing values
+			print_values = false;
 		}
 	}
 }
