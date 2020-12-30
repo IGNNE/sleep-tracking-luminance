@@ -146,26 +146,18 @@ void setup_buttons(void) {
 	GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD5;
 }
 
-/*void EXTI4_15_IRQHandler(void) {
- if ((EXTI->PR & EXTI_PR_PIF13_Msk) != 0){		//If selected trigger request occured in Pin5
- EXTI->PR |= EXTI_PR_PIF13;			//Reset Bit to look if trigger occured by writing 1
- stop_reading = 1;					//Stop reading
- }
- if ((EXTI->PR & EXTI_PR_PIF5_Msk) != 0){		//If selected trigger request occured in Pin5
- EXTI->PR |= EXTI_PR_PIF5;			//Reset Bit to look if trigger occured by writing 1
- stop_reading = 1;					//Stop reading
- }
- }*/
+bool startButton_pressed(void){
+	return !(GPIOB->IDR & GPIO_IDR_ID3);
+}
+
+bool stopButton_pressed(void){
+	return !(GPIOB->IDR & GPIO_IDR_ID5);
+}
 
 void send_data(uint32_t values_counter, float * val_array) {
 	for (uint32_t i = 0; i < values_counter; i++) {
 		char lux_buffer[(sizeof(float) * 8 + 1)];
-		int z = 1;
 		sprintf(lux_buffer, "%f ", val_array[i]);
-		if (z == 1) {
-			lcd_print_string(lux_buffer);
-			z += 1;
-		}
 		// Print Lux to USART
 		for (int j = 0; lux_buffer[j] != '\0'; j++) {
 			while (!(USART2->ISR & USART_ISR_TXE))
@@ -193,36 +185,16 @@ int main(void) {
 
 	adc_init();
 	setup_buttons();
-	int button_pressed = 0;
-	int keep_reading = 1;
+	bool button_pressed = 0;
+	bool keep_reading = 1;
 	int read_values = 0;	// read values since last sending
 	int send_values = 0;	// sum of send values
+	// Wait until recording is started
 	while (button_pressed != 1) {
-		if (GPIOB->IDR & GPIO_IDR_ID3) { // Value of IDR_ID3 (Pin 3) -> high/True, low/False
-		} else {
-			button_pressed = 1;			// Activate reading
+		if (startButton_pressed()) {
+			button_pressed = 1;		// Start reading
 		}
 	}
-	/*
-	 int * data_ptr = (int *) (DATA_EEPROM_BASE);
-
-	 // create random number
-	 srand(read_adc_raw_blocking(ADC_CHANNEL_0));
-	 int current = rand();
-	 int last = *data_ptr;
-	 *data_ptr = current;
-	 char buffer[10];
-
-	 lcd_print_string("current: ");
-	 snprintf(buffer, sizeof(buffer), "%x", current);
-	 lcd_print_string(buffer);
-	 lcd_set_cursor(1, 0);
-
-	 lcd_print_string("last: ");
-	 snprintf(buffer, sizeof(buffer), "%x", last);
-	 lcd_print_string(buffer);
-	 */
-
 	while (keep_reading != 0) {
 
 		float sensor_voltage = (float) (read_vdda()
@@ -234,7 +206,7 @@ int main(void) {
 		snprintf(buffer, sizeof(buffer), "%.1f lux", luminance);
 		lcd_clear_display();
 		lcd_print_string(buffer);
-		// Send values all 30 sek
+		// Only send values all 30 seconds
 		if (read_values == 6) {
 			flash_save_value(luminance);
 			read_values = 0;
@@ -243,7 +215,8 @@ int main(void) {
 
 		delay_ms(500);
 		read_values += 1;
-		if (!(GPIOB->IDR & GPIO_IDR_ID5)) { // Value of IDR_ID3 (Pin 3) -> high/True, low/False
+		// Record until Stop button is pressed
+		if (stopButton_pressed()) {
 			keep_reading = 0;			// Stop reading
 		}
 	}
