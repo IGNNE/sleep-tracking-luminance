@@ -129,14 +129,10 @@ size_t flash_get_values(float * val_array) {
 		return *data_array_pos_ptr;
 	} else {
 		// overflow happened, we need to get a bit more creative to get all values
-		size_t values_before_overflow_in_bytes = (DATA_ARRAY_SIZE
-				- (*data_array_pos_ptr)) * sizeof(float);
-		size_t values_after_overflow_in_bytes = (*data_array_pos_ptr)
-				* sizeof(float);
-		memcpy(val_array + values_after_overflow_in_bytes, data_base_ptr,
-				values_before_overflow_in_bytes);
-		memcpy(val_array, data_base_ptr + values_before_overflow_in_bytes,
-				values_after_overflow_in_bytes);
+		size_t num_old_values = DATA_ARRAY_SIZE - (*data_array_pos_ptr);
+		size_t index_old_value = (*data_array_pos_ptr);
+		memcpy(val_array, &data_base_ptr[index_old_value], num_old_values * sizeof(float)); // copy old values
+		memcpy(&val_array[num_old_values], data_base_ptr, index_old_value * sizeof(float)); // copy new values
 		return DATA_ARRAY_SIZE;
 	}
 }
