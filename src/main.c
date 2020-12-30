@@ -201,7 +201,7 @@ void write_lux_to_lcd(float luminance) {
 }
 
 /**
- * @brief Initialisiert alle nötigen Komponenten und führt das Hauptprogramm aus.
+ * @brief Initialisiert alle nötigen Komponenten und führt das Hauptprogramm und UI aus.
  * @return nicht implementiert
  */
 int main(void) {
@@ -274,6 +274,7 @@ int main(void) {
 		// Send data over serial port after pressing green button
 		if (greenButton_pressed) {
 			lcd_clear_display();
+			//lcdprint und delay vielleicht weg?
 			lcd_print_string("Sending data ...");
 			delay_ms(1000);
 			float all_values[DATA_ARRAY_SIZE];
