@@ -196,7 +196,6 @@ void send_data(uint32_t values_counter, float * val_array) {
 void write_lux_to_lcd(float luminance) {
 	char buffer[10];
 	snprintf(buffer, sizeof(buffer), "%.1f lux", luminance);
-	lcd_clear_display();
 	lcd_print_string(buffer);
 }
 
@@ -255,6 +254,9 @@ int main(void) {
 
 			float luminance = FmultiMap(sensor_voltage, VoutArray, LuxArray, 9);
 
+			lcd_clear_display();
+			lcd_print_string("Aufnahme...");
+			lcd_set_cursor(1, 0);
 			write_lux_to_lcd(luminance);
 
 			// Only send values all 30 seconds
@@ -277,14 +279,39 @@ int main(void) {
 		// Send data over serial port after pressing green button
 		if (print_values) {
 			lcd_clear_display();
-			//lcdprint und delay vielleicht weg?
-			lcd_print_string("Sending data ...");
-			delay_ms(1000);
+			lcd_print_string("Sende...");
+
 			float all_values[DATA_ARRAY_SIZE];
 			size_t values_counter = flash_get_values(all_values);
 			send_data(values_counter, all_values);
-			// Reset Flash after sending data
-			flash_reset();
+			lcd_print_string("ok");
+			delay_ms(1000);
+
+			lcd_clear_display();
+			lcd_print_string("Gruen: Weiter");
+			lcd_set_cursor(1, 0);
+			lcd_print_string("Rot: Loeschen");
+
+			bool delete_or_continue = false;
+			while (!delete_or_continue) {
+				if (startButton_pressed()) {
+					while (startButton_pressed())
+						; // wait until button released
+
+					// delete values
+					flash_reset();
+					lcd_clear_display();
+					lcd_print_string("Geloescht!");
+					delay_ms(1000);
+					delete_or_continue = true;
+				}
+				if (stopButton_pressed()) {
+					while (stopButton_pressed())
+						; // wait until button released
+					delete_or_continue = true;
+				}
+			}
+
 			// done printing values
 			print_values = false;
 		}
