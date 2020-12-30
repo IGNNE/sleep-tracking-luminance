@@ -136,7 +136,10 @@ size_t flash_get_values(float * val_array) {
 		return DATA_ARRAY_SIZE;
 	}
 }
-
+/**
+ * @brief Initialisiert die Pins PB3/PB5 um als Buttons genutzt zu werden
+ *
+ */
 void setup_buttons(void) {
 	//Setup Button PB3/PB5 -> D3/D4
 	RCC->IOPENR |= RCC_IOPENR_GPIOBEN; // Set of RCC Clock IO port enable register bits for clock for GPIO B
@@ -146,19 +149,36 @@ void setup_buttons(void) {
 	GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD5;
 }
 
+/**
+ * Gibt zurück ob der Start Button gedrückt wird
+ *
+ * @return aktueller Wert des start Button
+ *
+ */
 bool startButton_pressed(void){
 	return !(GPIOB->IDR & GPIO_IDR_ID3);
 }
 
+/**
+ * Gibt zurück ob der Ende Button gedrückt wird
+ *
+ * @return aktueller Wert des ende Button
+ *
+ */
 bool stopButton_pressed(void){
 	return !(GPIOB->IDR & GPIO_IDR_ID5);
 }
 
+/**
+ * @brief Sendet die gespeicherten EEPROM lux-werte seriell über USART
+ * @param values_counter Anzahl der gespeicherten Werte im EEPORM dieser session
+ * @param val_array Array mit ::DATA_ARRAY_SIZE und den gespeicherten Lux-werten
+ */
 void send_data(uint32_t values_counter, float * val_array) {
 	for (uint32_t i = 0; i < values_counter; i++) {
 		char lux_buffer[(sizeof(float) * 8 + 1)];
 		sprintf(lux_buffer, "%f ", val_array[i]);
-		// Print Lux to USART
+		// Send Lux-values over USART
 		for (int j = 0; lux_buffer[j] != '\0'; j++) {
 			while (!(USART2->ISR & USART_ISR_TXE))
 				; // wait until the TDR register has been read
@@ -167,6 +187,10 @@ void send_data(uint32_t values_counter, float * val_array) {
 	}
 }
 
+/**
+ * @brief Initialisiert alle nötigen Komponenten und führt das Hauptprogramm aus.
+ * @return nicht implementiert
+ */
 int main(void) {
 	clock_setup_16MHz();
 	systick_setup();
