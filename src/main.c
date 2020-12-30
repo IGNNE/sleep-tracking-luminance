@@ -15,6 +15,15 @@ float VoutArray[] = { 0.0011498, 0.0033908, 0.011498, 0.041803, 0.15199,
 float LuxArray[] = { 1.0108, 3.1201, 9.8051, 27.43, 69.545, 232.67, 645.11,
 		73.52, 1000 };
 
+#define DATA_ARRAY_SIZE 500
+float * data_base_ptr = (float *) (DATA_EEPROM_BASE);
+size_t * data_array_pos_ptr = (size_t *) (DATA_EEPROM_BASE
+		+ (DATA_ARRAY_SIZE * sizeof(float)));
+bool * buffer_overflow_ptr = (bool *) (DATA_EEPROM_BASE + DATA_ARRAY_SIZE
+		+ sizeof(size_t));
+
+const int NUM_AVERAGE_VALUES = 6;
+
 /**
  * Slightly modified from https://wiki.seeedstudio.com/Grove-Luminance_Sensor/
  *
@@ -69,12 +78,6 @@ static void usart_setup(void) {
 	NVIC_EnableIRQ(USART2_IRQn);
 }
 
-#define DATA_ARRAY_SIZE 500
-float * data_base_ptr = (float *) (DATA_EEPROM_BASE);
-size_t * data_array_pos_ptr = (size_t *) (DATA_EEPROM_BASE
-		+ (DATA_ARRAY_SIZE * sizeof(float)));
-bool * buffer_overflow_ptr = (bool *) (DATA_EEPROM_BASE + DATA_ARRAY_SIZE
-		+ sizeof(size_t));
 
 /**
  * Lässt Schreib-/Lesezugriff auf Flash zu
@@ -230,8 +233,7 @@ int main(void) {
 		bool record_values = false;
 		bool print_values = false;
 
-		int read_values = 0;	// read values since last sending
-		int send_values = 0;	// sum of send values
+		uint8_t read_values = 0;	// read values since last sending
 
 		// Waiting loop until recording is started
 		while (!record_values && !print_values) {
@@ -247,12 +249,16 @@ int main(void) {
 			}
 		}
 
+
+		// this saves the averaged value
+		float luminance_average = 0;
 		// Record data loop
 		while (record_values) {
 			float sensor_voltage = (float) (read_vdda()
 					* read_adc_raw_blocking(ADC_CHANNEL_0)) / (4095 * 1000);
 
 			float luminance = FmultiMap(sensor_voltage, VoutArray, LuxArray, 9);
+			luminance_average += luminance;
 
 			lcd_clear_display();
 			lcd_print_string("Aufnahme...");
@@ -260,12 +266,12 @@ int main(void) {
 			write_lux_to_lcd(luminance);
 
 			// Only send values all 30 seconds
-			if (read_values == 6) {
-				flash_save_value(luminance);
+			if (read_values == NUM_AVERAGE_VALUES) {
+				flash_save_value(luminance_average/NUM_AVERAGE_VALUES);
+				luminance_average = 0;
 				read_values = 0;
-				send_values += 1;
 			}
-			read_values += 1;
+			read_values++;
 			delay_ms(500);
 
 			// Stop recording when start button is pressed again
@@ -285,7 +291,7 @@ int main(void) {
 			size_t values_counter = flash_get_values(all_values);
 			send_data(values_counter, all_values);
 			lcd_print_string("ok");
-			delay_ms(1000);
+			delay_ms(2000);
 
 			lcd_clear_display();
 			lcd_print_string("Gruen: Weiter");
@@ -302,7 +308,7 @@ int main(void) {
 					flash_reset();
 					lcd_clear_display();
 					lcd_print_string("Geloescht!");
-					delay_ms(1000);
+					delay_ms(2000);
 					delete_or_continue = true;
 				}
 				if (stopButton_pressed()) {
