@@ -112,14 +112,12 @@ void flash_reset() {
 }
 
 /**
- * Gibt alle Werte als ein zusammenhängendes Array zur�ck
+ * Gibt alle Werte als ein zusammenhängendes Array zurück
  *
  * @param[in,out] val_array Array mit min. ::DATA_ARRAY_SIZE Einträgen
  *
  * @return Die tatsächlich geschriebenen Array-Einträge
  *
- * @todo pls test!!1!
- * @todo overflow nicht getestet
  */
 size_t flash_get_values(float * val_array) {
 	if (!*buffer_overflow_ptr) {
@@ -150,7 +148,7 @@ void setup_buttons(void) {
 }
 
 /**
- * Gibt zur�ck ob der Start Button gedr�ckt wird
+ * Gibt zurück ob der Start Button gedrückt wird
  *
  * @return aktueller Wert des start Button
  *
@@ -160,7 +158,7 @@ bool startButton_pressed(void) {
 }
 
 /**
- * Gibt zur�ck ob der Ende Button gedr�ckt wird
+ * Gibt zurück ob der Ende Button gedrückt wird
  *
  * @return aktueller Wert des ende Button
  *
@@ -170,7 +168,7 @@ bool stopButton_pressed(void) {
 }
 
 /**
- * @brief Sendet die gespeicherten EEPROM lux-werte seriell �ber USART
+ * @brief Sendet die gespeicherten EEPROM lux-werte seriell über USART
  * @param values_counter Anzahl der gespeicherten Werte im EEPORM dieser session
  * @param val_array Array mit ::DATA_ARRAY_SIZE und den gespeicherten Lux-werten
  */
@@ -198,7 +196,7 @@ void write_lux_to_lcd(float luminance) {
 }
 
 /**
- * @brief Initialisiert alle n�tigen Komponenten und f�hrt das Hauptprogramm aus.
+ * @brief Initialisiert alle nötigen Komponenten und führt das Hauptprogramm aus.
  * @return nicht implementiert
  */
 int main(void) {
